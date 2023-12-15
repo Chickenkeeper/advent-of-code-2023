@@ -36,12 +36,12 @@ fn part2(input: []const u8, allocator: std.mem.Allocator) !usize {
     var sum: usize = 0;
     var lines = std.mem.tokenizeScalar(u8, input, '\n');
     var hashset = std.AutoHashMap([3]u8, void).init(allocator);
-    var stack = std.ArrayList(usize).init(allocator);
+    var fifo = std.fifo.LinearFifo(usize, .Dynamic).init(allocator);
     defer hashset.deinit();
-    defer stack.deinit();
+    defer fifo.deinit();
 
     while (lines.next()) |line| {
-        const copies = if (stack.items.len > 0) stack.orderedRemove(0) + 1 else 1;
+        const copies = (fifo.readItem() orelse 0) + 1;
         var matches: usize = 0;
         var i: usize = winning_nums_start;
 
@@ -57,10 +57,10 @@ fn part2(input: []const u8, allocator: std.mem.Allocator) !usize {
         }
 
         for (0..matches) |m| {
-            if (stack.items.len > m) {
-                stack.items[m] += copies;
+            if (m < fifo.count) {
+                fifo.buf[(m + fifo.head) % fifo.buf.len] += copies;
             } else {
-                try stack.append(copies);
+                try fifo.writeItem(copies);
             }
         }
 
